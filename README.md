@@ -6,7 +6,7 @@ Own the show diary, contract references, deposits and preparation records behind
 |---|---|---|
 | Free, MIT. Install and try the demo. | Your deal terms, artist fields, reports and SystemOne export mapping. | Installed and operated through Omni by Enterprise DNA. A setup fee, then a retainer. |
 
-[Get your version built](https://enterprisedna.co/omni/book/?offer=replace-software&utm_source=github&utm_medium=readme&utm_campaign=systemone) · [Instead of SystemOne](https://enterprisedna.co/omni/instead-of/systemone)
+[Get your version built](https://enterprisedna.co/omni/book/?offer=replace-software&utm_source=github&utm_medium=readme&utm_campaign=systemone) · [Instead of SystemOne](https://enterprisedna.co/omni/instead-of/systemone?utm_source=github&utm_medium=readme&utm_campaign=systemone)
 
 ## Start with your next shows
 
