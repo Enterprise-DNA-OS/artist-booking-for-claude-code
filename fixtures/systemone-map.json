@@ -1,0 +1,12 @@
+{
+  "code": "Show ID",
+  "name": "Show name",
+  "artist": "Artist",
+  "promoter": "Promoter",
+  "venue": "Venue",
+  "starts_at": "Start",
+  "ends_at": "End",
+  "currency": "Currency",
+  "fee": "Fee",
+  "source_status": "Status"
+}

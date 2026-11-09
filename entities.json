@@ -1,0 +1,56 @@
+{
+  "artists": {
+    "name": "text",
+    "owner": "text",
+    "retention_review": "date",
+    "notes": "text"
+  },
+  "promoters": {
+    "name": "text",
+    "contact": "text",
+    "email": "text",
+    "retention_review": "date",
+    "notes": "text"
+  },
+  "venues": {
+    "name": "text",
+    "city": "text",
+    "timezone": "text",
+    "address": "text",
+    "emergency_contact": "text",
+    "notes": "text"
+  },
+  "bookings": {
+    "name": "text",
+    "artist_id": "artists",
+    "promoter_id": "promoters",
+    "venue_id": "venues",
+    "starts_at": "timestamp",
+    "ends_at": "timestamp",
+    "hold_until": "date",
+    "currency": "currency",
+    "fee_cents": "money",
+    "deposit_cents": "money",
+    "deposit_due": "date",
+    "owner": "text",
+    "notes": "text"
+  },
+  "advance_items": {
+    "name": "text",
+    "booking_id": "bookings",
+    "due_on": "date",
+    "owner": "text",
+    "notes": "text",
+    "category": "kind"
+  },
+  "journeys": {
+    "name": "text",
+    "booking_id": "bookings",
+    "departs_at": "timestamp",
+    "arrives_at": "timestamp",
+    "origin": "text",
+    "destination": "text",
+    "reference": "text",
+    "notes": "text"
+  }
+}

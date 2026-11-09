@@ -1,13 +1,35 @@
 [
   {
     "name": "week",
-    "title": "This week",
-    "subtitle": "Artist Booking for Claude Code: what needs attention, rendered by npm run view",
+    "title": "Agency week",
     "sections": [
       {
+        "title": "Upcoming shows",
+        "sql": "select code,artist,local_start,timezone,venue,status,owner from booking_desk where status in ('hold','confirmed') order by starts_at"
+      },
+      {
         "title": "Needs attention",
-        "note": "TODO(author): point this at the industry's attention view (overdue, stuck, quiet).",
-        "sql": "select 'replace me' as item, 'TODO(author)' as why"
+        "sql": "select * from findings order by rule,record"
+      }
+    ]
+  },
+  {
+    "name": "money",
+    "title": "Deposits and balances",
+    "sections": [
+      {
+        "title": "Each show, its own currency",
+        "sql": "select code,artist,promoter,currency,fee_cents,received_cents,balance_cents,deposit_outstanding_cents from booking_desk where status<>'cancelled' order by starts_at"
+      }
+    ]
+  },
+  {
+    "name": "advancing",
+    "title": "Show preparation",
+    "sections": [
+      {
+        "title": "Open preparation",
+        "sql": "select code,booking,artist,category,due_on,owner from preparation_queue where completed_on is null order by due_on"
       }
     ]
   }

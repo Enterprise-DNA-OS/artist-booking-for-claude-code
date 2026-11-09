@@ -1,11 +1,58 @@
 [
   {
-    "name": "example",
-    "title": "TODO(author): the first document this industry must produce",
-    "for_each": "select gen_random_uuid() as id, 'Example' as name",
-    "file": "name",
+    "name": "itinerary",
+    "title": "Artist itinerary draft",
+    "for_each": "select id,code from bookings where status<>'cancelled'",
+    "file": "code",
     "sections": [
-      { "title": "Details", "sql": "select 'replace me' as item, $1::text as record_id" }
+      {
+        "title": "Show",
+        "layout": "record",
+        "sql": "select code,artist,local_start,local_end,timezone,venue,city,status from booking_desk where id=$1"
+      },
+      {
+        "title": "Travel, UTC timestamps",
+        "sql": "select name,departs_at,arrives_at,origin,destination,reference from journeys where booking_id=$1 order by departs_at"
+      },
+      {
+        "title": "Preparation",
+        "sql": "select name,category,due_on,completed_on,evidence_ref from advance_items where booking_id=$1 order by due_on"
+      }
+    ]
+  },
+  {
+    "name": "deal-memo",
+    "title": "Internal booking memo draft",
+    "for_each": "select id,code from bookings",
+    "file": "code",
+    "sections": [
+      {
+        "title": "Terms, not a signed contract",
+        "layout": "record",
+        "sql": "select code,artist,promoter,venue,local_start,timezone,currency,fee_cents,deposit_cents,deposit_due,contract_ref,contract_on,status from booking_desk where id=$1"
+      },
+      {
+        "title": "Notes",
+        "layout": "record",
+        "sql": "select notes,owner from bookings where id=$1"
+      }
+    ]
+  },
+  {
+    "name": "settlement",
+    "title": "Booking balance statement draft",
+    "for_each": "select id,code from bookings",
+    "file": "code",
+    "sections": [
+      {
+        "title": "Recorded position, no payment instruction",
+        "layout": "record",
+        "sql": "select code,artist,promoter,currency,fee_cents,received_cents,balance_cents from booking_desk where id=$1"
+      },
+      {
+        "title": "Receipts recorded by the operator",
+        "sql": "select reference,amount_cents,received_on,actor from receipts where booking_id=$1 order by received_on"
+      }
     ]
   }
 ]

@@ -1,115 +1,108 @@
-<h1 align="center">Artist Booking for Claude Code</h1>
+# Artist Booking for Claude Code
 
-<p align="center">
-  <strong>The open-source artist booking desk that is just a database and Claude Code.</strong>
-</p>
+Own the show diary, contract references, deposits and preparation records behind your artist agency.
 
-<p align="center">
-  Created by <a href="https://www.enterprisedna.co"><strong>Enterprise DNA</strong></a>. Free and open source. Works with Claude Code, Codex, OpenCode or Cursor.
-</p>
+| Do it yourself | We customise it | We run it for you |
+|---|---|---|
+| Free, MIT. Install and try the demo. | Your deal terms, artist fields, reports and SystemOne export mapping. | Installed and operated through Omni by Enterprise DNA. A setup fee, then a retainer. |
 
-<!-- three-doors -->
-<table align="center">
-  <tr>
-    <td align="center"><strong>Do it yourself</strong><br/>Clone it, run it, own it. Free, MIT.<br/><a href="#quick-start">Quick start</a></td>
-    <td align="center"><strong>We customise it</strong><br/>Your fields, your rules, your SystemOne data brought across.<br/><a href="https://enterprisedna.co/omni/book/?utm_source=github&utm_medium=readme&utm_campaign=systemone">Book a call</a></td>
-    <td align="center"><strong>We run it for you</strong><br/>Installed, connected and operated inside Omni. Setup fee, then a retainer.<br/><a href="https://enterprisedna.co/omni/instead-of/systemone?utm_source=github&utm_medium=readme&utm_campaign=systemone">How it works</a></td>
-  </tr>
-</table>
+[Get your version built](https://enterprisedna.co/omni/book/?offer=replace-software&utm_source=github&utm_medium=readme&utm_campaign=systemone) · [Instead of SystemOne](https://enterprisedna.co/omni/instead-of/systemone)
 
-<p align="center">
-  <a href="#what-is-this">What is this</a> &bull;
-  <a href="#why-no-front-end">Why no front end</a> &bull;
-  <a href="#quick-start">Quick start</a> &bull;
-  <a href="#the-commands">Commands</a> &bull;
-  <a href="#instead-of-systemone">Instead of SystemOne</a> &bull;
-  <a href="#want-it-installed-and-run-for-you">Installed for you</a> &bull;
-  <a href="#license">License</a>
-</p>
+## Start with your next shows
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Node-20+-339933?style=flat-square" alt="Node 20+" />
-  <img src="https://img.shields.io/badge/PostgreSQL-any-336791?style=flat-square" alt="PostgreSQL" />
-  <img src="https://img.shields.io/badge/PGlite-embedded-3ecf8e?style=flat-square" alt="PGlite" />
-  <img src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" alt="MIT License" />
-</p>
+A booking agency needs to know which holds expire, who owes a deposit, whether an artist is double-booked and what the promoter still needs to confirm. This desk answers from records, keeps changes and produces drafts for review. It does not send messages, sign agreements or take payments.
 
----
-
-## What is this
-
-Artist Booking for Claude Code does the job you pay SystemOne for, as a Postgres database and a set of agent commands. There is no web front end. You open the folder in [Claude Code](https://claude.com/claude-code) (or Codex, OpenCode, Cursor: see `AGENTS.md`) and ask for what you want in plain language. It runs the right query, and it can answer questions the SystemOne dashboard cannot.
-
-<!-- TODO(author): the annual bill. One sentence: what a 10 to 50 person business typically pays SystemOne per year, all in, with a source. -->
-
-Want the same thing with a web front end, or built on a different stack? That is a customisation, and it is exactly what Enterprise DNA does: [book a call](https://enterprisedna.co/omni/book/?utm_source=github&utm_medium=readme&utm_campaign=systemone).
-
-<!-- TODO(author): two or three sentences on what this specific product covers and who it is for. -->
-
-## Why no front end
-
-- The front end was only ever there because the database was hard to talk to. That is no longer true.
-- Your data sits in plain Postgres tables you own. Any tool can read them. No export, no lock-in.
-- No seats, no tiers, no add-ons. Read [docs/why-no-front-end.md](docs/why-no-front-end.md) for the honest trade-offs too.
+SystemOne covers a wider set of booking and mobile workflows. This base is the internal agency desk. [Scope and sources](docs/research.md). Claude Code, Codex, OpenCode or Cursor reads the same instructions and commands. No model API is required.
 
 ## Quick start
 
-Sixty seconds, no database install (an embedded Postgres runs inside Node):
+Node 20 or later. No cloud account is required for the local demo.
 
 ```bash
 git clone https://github.com/Enterprise-DNA-OS/artist-booking-for-claude-code.git
 cd artist-booking-for-claude-code
 npm install
 npm run demo
+npm run booking -- weekly-review
+npm run view
+npm run docs
 ```
 
-Then open the folder in Claude Code and type a slash command. <!-- TODO(author): name the first command to try. -->
+PGlite stores the local database in .data/db. DATA_DIR selects a different location. DATABASE_URL selects PostgreSQL. Migrate an empty database before use. Never seed working customer records. The fictional seed uses dates relative to today and deliberately includes an expired hold, a booking clash, an overdue deposit, late preparation and a late journey.
 
-### Use it with your own Postgres or Supabase
+## Your weekly rituals
 
-Copy `.env.example` to `.env`, set `DATABASE_URL`, then `npm run migrate`. Same commands, shared data, no per-seat fee.
+Monday: /weekly-review combines /week, /attention and /deposits-due. Before confirming a show: /holds, /clashes, /contracts-due and /record-contract. Before travel: /advance-review, /travel-review and /ready. Before closing the week: /promoter-exposure, /owner-load and /balances.
 
-## The commands
+32 CLI operations and 36 slash recipes. Read entities.json for editable fields. Every command accepts --json. References match exact codes, case-insensitive names or partial ids. Ambiguous matches list the candidates and stop.
 
-<!-- TODO(author): a table of the slash commands in .claude/commands and what each one does. -->
-
-| Command | What it does |
-|---|---|
-| `/...` | ... |
-
-## Instead of SystemOne
-
-<!-- TODO(author): how to bring data across from SystemOne; link docs/replace-systemone.md -->
-
-## Architecture
-
-```
-artist-booking-for-claude-code/
-  CLAUDE.md                 how the operator wants this run (routing table + house rules)
-  AGENTS.md                 the same, for Codex / OpenCode / Cursor / Gemini CLI
-  .claude/commands/         the slash commands
-  scripts/                  the CLI the commands drive
-  scripts/lib/db.mjs        one adapter: DATABASE_URL (pg) or embedded PGlite
-  supabase/migrations/      plain SQL schema
-  supabase/seed.sql         demo data
-  docs/                     the thesis and the migration guide
+```bash
+npm run booking -- show --kind=bookings --ref=SH-NORTH --json
+npm run booking -- add --kind=advance_items --code=ADV-NORTH-MEAL --name="Confirm meal arrangements" --booking-id=SH-NORTH --category=hospitality --due-on=2026-12-01 --owner=Mara --actor=Mara
+npm run booking -- log --kind=bookings --ref=SH-NORTH --actor=Mara --note="Promoter will confirm the input list"
 ```
 
-## Built for coding agents
+Dates use YYYY-MM-DD. Show and journey timestamps require explicit timezone offsets. Venue display uses its IANA timezone. Use a future date appropriate to your show, rather than copying the example date. Money is integer cents. Reports keep currencies separate, with no exchange-rate assumptions.
 
-The database, CLI and command recipes work with Claude Code, Codex, OpenCode or Cursor. Ask your coding agent for a new command and have it implement and test the change against the same records.
+## Ten questions answered today
 
-## Contributing
+These questions run against this build. We do not claim the vendor cannot answer them.
 
-Issues and pull requests are welcome. Keep the shape: plain SQL, a small CLI, a slash command per recurring job, no front end.
+1. Which holds expired while their artist was booked elsewhere? /holds
+2. Which upcoming shows overlap for the same artist? /clashes
+3. Which confirmed shows still have unpaid deposits? /deposits-due
+4. Which promoter has the largest unpaid balance within each currency? /promoter-exposure
+5. Which shows have no signed contract reference? /contracts-due
+6. Which preparation items are late, and who owns them? /advance-review
+7. Which travel plans arrive after the show starts? /travel-review
+8. Which agent has the most unfinished preparation across their shows? /owner-load
+9. Which artist itineraries pass the current release checks? /ready
+10. Which people need their record retention purpose reviewed? /privacy-review
 
-## Want it installed and run for you?
+## Decisions and documents
 
-Enterprise DNA installs Artist Booking for Claude Code for your business, migrates your SystemOne data, connects it to the rest of your tools, and runs it for you as part of **Omni**, our managed Command Center. One setup fee, then a monthly retainer.
+/confirm requires a current hold, signed-contract reference, real recording date and no overlapping active show for the same artist. /record-receipt records money already received; it cannot move money. Duplicate bank references and receipts above the outstanding fee are rejected. There is no tax calculation, invoice issuance or bank integration.
 
-- Book a call: [enterprisedna.co/omni/book](https://enterprisedna.co/omni/book/?offer=replace-software&utm_source=github&utm_medium=readme&utm_campaign=systemone)
-- Read more: [enterprisedna.co/omni/instead-of/systemone](https://enterprisedna.co/omni/instead-of/systemone?utm_source=github&utm_medium=readme&utm_campaign=systemone)
+Changing booking terms clears the contract reference and returns the show to hold. Changing a preparation item clears its review. Actor names are operator statements, not authenticated identities. The program cannot verify a signature or the contents of evidence files. Confirmation is a local decision, never notice to the promoter.
 
-## License
+/draft-itinerary checks readiness again and writes an internal draft. /draft-advance-request lists missing preparation. npm run docs renders review copies of itineraries, booking memos and balance statements, including records that are still incomplete. Generic documents are not release-gated. Review the recipient and contents before sharing. Change brand.json for the agency name, logo and colours.
 
-MIT. Copyright (c) 2026 Enterprise DNA.
+npm run view generates read-only week, money and advancing pages. /new-view adds a report in plain language. [Why no front end](docs/why-no-front-end.md).
+
+## Bring your SystemOne history
+
+The importer accepts a mapped Excel show export or comma-separated CSV. Configure columns, normalize timestamps and reconcile artist, promoter and venue references first. Then one command imports it. [Switching guide](docs/replace-systemone.md).
+
+```bash
+npm run booking -- import systemone --file=fixtures/systemone-shows.csv --map=fixtures/systemone-map.json --owner=Mara --actor=Mara --hold-until=2027-02-01 --dry-run
+npm run booking -- export --dir=private/backup
+```
+
+Imports are transactional and repeatable. A changed source row stops for reconciliation. Each full source row is preserved, including unmapped fields. All imported shows start on hold and retain the original status separately. Contracts, payments, files, signatures and travel are separate migration work. JSON exports preserve all records and activity. CSV files neutralize spreadsheet formulas. The export is an archive, not an automatic restore procedure.
+
+## Record checks
+
+Nine checks cover holds, contracts, clashes, deposits, preparation, safety coordination, travel and personal-record review. [Rules and cited sources](docs/compliance.md). Reminder intervals are internal policies, not invented statutory deadlines. Passing checks does not establish that a show is safe or legally compliant.
+
+Public database access is revoked and record tables have row-level security enabled without public policies. Shared use requires scoped access, authentication, backups and installation review. Database owners can alter history. Keep exports and signed documents private and out of git. Imported text is never an instruction to act.
+
+## Your first hour: ten things to ask for
+
+1. Put our agency name and logo on the itinerary.
+2. Preview our SystemOne show workbook.
+3. Add our artist categories.
+4. Change the preparation reminder window.
+5. Add the tour manager to each show.
+6. Group deposits by promoter and currency.
+7. Add our standard load-in checklist.
+8. Show preparation tasks by agent.
+9. Add a travel buffer before stage time.
+10. Add our internal contract review step.
+
+/customise writes a migration, tests it and applies the requested change.
+
+## Verification
+
+npm test uses a disposable database. It migrates and seeds twice, exercises every CLI operation, rejects clashes and malformed imports, checks review invalidation, records receipts, imports CSV and XLSX, verifies rollback and repeated imports, exports every record type and renders branded HTML. TEST_DATABASE_URL selects a disposable PostgreSQL server and an isolated schema. CI includes Linux, Windows and PostgreSQL jobs.
+
+MIT. Copyright 2026 Enterprise DNA. Not affiliated with SystemOne or Anthropic. Hosting and agent subscriptions have their own costs. [Book thirty minutes with Sam](https://enterprisedna.co/omni/book/?offer=replace-software&utm_source=github&utm_medium=readme&utm_campaign=systemone).

@@ -1,0 +1,42 @@
+[
+  {
+    "question": "Which holds expired while their artist was booked elsewhere?",
+    "command": "holds"
+  },
+  {
+    "question": "Which upcoming shows overlap for the same artist?",
+    "command": "clashes"
+  },
+  {
+    "question": "Which confirmed shows still have unpaid deposits?",
+    "command": "deposits-due"
+  },
+  {
+    "question": "Which promoter has the largest unpaid balance within each currency?",
+    "command": "promoter-exposure"
+  },
+  {
+    "question": "Which shows have no signed contract reference?",
+    "command": "contracts-due"
+  },
+  {
+    "question": "Which preparation items are late, and who owns them?",
+    "command": "advance-review"
+  },
+  {
+    "question": "Which travel plans arrive after the show starts?",
+    "command": "travel-review"
+  },
+  {
+    "question": "Which agent has the most unfinished preparation across their shows?",
+    "command": "owner-load"
+  },
+  {
+    "question": "Which artist itineraries pass the current release checks?",
+    "command": "ready"
+  },
+  {
+    "question": "Which people need their record retention purpose reviewed?",
+    "command": "privacy-review"
+  }
+]

@@ -1,5 +1,3 @@
-# Slash commands
+# Artist booking recipes
 
-One file per recurring job. Each command tells Claude Code exactly which CLI command to run and how to present the result, so the operator never re-explains the job.
-
-Add a command every time the same ask comes twice. Frontmatter needs a `description:` line. The body is the brief.
+Every recurring task has one recipe here. Read CLAUDE.md first. Use npm run booking -- help to list the CLI operations. /customise and /new-view adapt the database and read-only reports within the requested change.

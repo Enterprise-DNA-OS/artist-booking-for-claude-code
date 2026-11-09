@@ -1,0 +1,24 @@
+{
+  "captured": "2026-11-09T02:42:39.983Z",
+  "fixture": "Fictional artist agency seed; all names and amounts are invented demo records",
+  "screens": [
+    {
+      "title": "Artist clashes",
+      "ask": "Have we held two shows for the same artist at the same time?",
+      "command": "npm run booking -- clashes",
+      "output": "booking | conflicts_with | artist\n------- | -------------- | ------\nSH-NORTH | SH-CLASH | Kowhai Quartet"
+    },
+    {
+      "title": "Unpaid deposits",
+      "ask": "Which promoters still owe the agreed deposit?",
+      "command": "npm run booking -- deposits-due",
+      "output": "code | promoter | currency | deposit_due | deposit_outstanding_cents\n---- | -------- | -------- | ----------- | -------------------------\nSH-NORTH | Northern Stages | NZD | 2026-11-06 | 100000\nSH-CLASH | Southern Sound | NZD | 2026-11-11 | 100000\nSH-SYDNEY | Northern Stages | AUD | 2026-11-11 | 200000"
+    },
+    {
+      "title": "Show preparation",
+      "ask": "Which show details still need an owner to finish them?",
+      "command": "npm run booking -- advance-review",
+      "output": "code | booking | artist | category | due_on | owner\n---- | ------- | ------ | -------- | ------ | -----\nADV-NORTH-TECH | SH-NORTH | Kowhai Quartet | technical | 2026-11-07 | Tane\nADV-NORTH-SAFE | SH-NORTH | Kowhai Quartet | safety | 2026-11-08 | Mara"
+    }
+  ]
+}

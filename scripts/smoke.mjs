@@ -1,0 +1,94 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {spawnSync} from 'node:child_process';
+import {getDb,REPO_ROOT} from './lib/db.mjs';
+import {migrate} from './migrate.mjs';
+import {seed} from './seed.mjs';
+import {run,commands,entities,reads} from './booking.mjs';
+import {parseCsv} from './lib/csv.mjs';
+import {page,table} from './lib/render.mjs';
+const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'artist-booking-test-'));
+process.env.DATA_DIR=path.join(tmp,'db');process.env.OUTPUT_DIR=tmp;process.env.DATABASE_URL=process.env.TEST_DATABASE_URL||'';
+const db=await getDb();let schema;const tested=new Set();const today=new Date().toISOString().slice(0,10);const actor='Test operator';
+const call=async(c,o={},pos=[])=>{tested.add(c);return run(db,c,o,pos);};
+const reject=async(c,o,re)=>assert.rejects(()=>call(c,o),re);
+const ref=code=>({ref:code,actor});
+const child=(script,args=[])=>{const r=spawnSync(process.execPath,[script,...args],{cwd:REPO_ROOT,encoding:'utf8',env:{...process.env,PGOPTIONS:schema?`-c search_path=${schema}`:process.env.PGOPTIONS}});assert.equal(r.status,0,r.stderr||r.stdout);return r.stdout;};
+try{
+ if(db.mode==='postgres'){schema='test_booking_'+Date.now();await db.exec(`create schema ${schema}; set search_path to ${schema}`);}
+ await migrate(db);assert.equal((await migrate(db)).ran.length,0);await seed(db);await seed(db);assert.equal((await call('list',{kind:'bookings'})).length,4);
+ for(const c of Object.keys(reads))assert.ok(Array.isArray(await call(c)));
+ assert.equal((await call('help')).length,commands.length);assert.ok((await call('weekly-review')).length>3);
+ assert.equal((await call('show',{kind:'artists',ref:'kowhai quartet'}))[0].code,'ART-KOWHAI');
+ await reject('show',{kind:'artists',ref:'kowhai'},/Ambiguous.*\nART-/s);
+ const artist=(await call('show',{kind:'artists',ref:'ART-KOWHAI'}))[0];assert.equal((await call('show',{kind:'artists',ref:artist.id.slice(0,12)}))[0].id,artist.id);
+ await call('add',{kind:'artists',code:'ART-TEST',name:'<img src=x onerror=alert(1)>',actor,retention_review:today});
+ await call('update',{kind:'artists',ref:'ART-TEST',owner:'One owner',actor});
+ await call('log',{kind:'artists',ref:'ART-TEST',actor,note:'Source reviewed'});
+ await reject('add',{kind:'artists',code:'ART-BAD',name:'Bad date',retention_review:'2026-02-30',actor},/date/);
+ await reject('update',{kind:'bookings',ref:'SH-NORTH',fee_cents:'1.25',actor},/whole cents/);
+ await reject('update',{kind:'bookings',ref:'SH-NORTH',fee_cents:'1',actor},/below recorded/);
+ await reject('update',{kind:'bookings',ref:'SH-NORTH',starts_at:'2026-12-20T19:00',actor},/timezone/);
+ await reject('update',{kind:'artists',ref:'ART-TEST',fee_cents:'10',actor},/does not belong/);
+ await reject('list',{kind:'bookings;drop table artists'},/Unknown kind/);
+ await reject('week',{limit:'1'},/Unknown flag/);
+ await reject('confirm',ref('SH-READY'),/contract/);
+ await call('record-contract',{...ref('SH-CLASH'),on:today,document:'signed/clash.pdf'});
+ await reject('confirm',ref('SH-CLASH'),/expired/);
+ await call('update',{kind:'bookings',...ref('SH-CLASH'),hold_until:today});
+ await reject('confirm',ref('SH-CLASH'),/overlaps/);
+ await call('cancel',{...ref('SH-CLASH'),note:'Promoter released the competing hold'});
+ assert.equal((await call('clashes')).length,0);
+ await call('record-contract',{...ref('SH-READY'),on:today,document:'signed/ready.pdf'});
+ await call('confirm',ref('SH-READY'));
+ await call('update',{kind:'bookings',...ref('SH-READY'),name:'Changed terms'});
+ const changed=(await call('show',{kind:'bookings',ref:'SH-READY'}))[0];assert.equal(changed.status,'hold');assert.equal(changed.contract_on,null);
+ await reject('draft-itinerary',{ref:'SH-NORTH'},/blocked/);
+ await call('draft-advance-request',{ref:'SH-NORTH'});
+ await reject('record-receipt',{...ref('SH-NORTH'),on:today,reference:'OVER',amount_cents:'999999999'},/exceeds/);
+ await call('record-receipt',{...ref('SH-NORTH'),on:today,reference:'BANK-TEST',amount_cents:'100000'});
+ await reject('record-receipt',{...ref('SH-NORTH'),on:today,reference:'BANK-TEST',amount_cents:'1'},/unique/);
+ assert.equal((await call('deposits-due')).some(r=>r.code==='SH-NORTH'),false);
+ for(const c of ['ADV-NORTH-SAFE','ADV-NORTH-TECH'])await call('complete-advance',{...ref(c),on:today,evidence:'briefs/'+c+'.pdf'});
+ let journey=(await call('show',{kind:'journeys',ref:'TR-NORTH'}))[0];const north=(await call('show',{kind:'bookings',ref:'SH-NORTH'}))[0];
+ await call('update',{kind:'journeys',...ref('TR-NORTH'),arrives_at:new Date(new Date(north.starts_at).getTime()-3600000).toISOString()});
+ assert.equal((await call('ready')).find(r=>r.code==='SH-NORTH').ready,true);
+ const draft=(await call('draft-itinerary',{ref:'SH-NORTH'}))[0];assert.ok(fs.existsSync(draft.file));
+ await call('update',{kind:'advance_items',...ref('ADV-NORTH-SAFE'),name:'Changed safety scope'});
+ assert.equal((await call('ready')).find(r=>r.code==='SH-NORTH').ready,false);
+ await reject('complete-show',ref('SH-NORTH'),/not ended/);
+ // Past confirmed records can be closed without changing their financial history.
+ await db.query("update bookings set starts_at=current_timestamp-interval '2 days',ends_at=current_timestamp-interval '1 day' where code='SH-SYDNEY'");
+ await call('complete-show',ref('SH-SYDNEY'));
+ const file=path.join(REPO_ROOT,'fixtures/systemone-shows.csv'),map=path.join(REPO_ROOT,'fixtures/systemone-map.json');const opts={file,map,owner:'Test owner',actor,hold_until:today};
+ assert.equal((await call('import',{...opts,dry_run:true},['systemone']))[0].added,1);assert.equal((await call('list',{kind:'bookings'})).length,4);
+ assert.equal((await call('import',opts,['systemone']))[0].added,1);
+ assert.equal((await call('import',opts,['systemone']))[0].unchanged,1);
+ const imported=(await call('show',{kind:'bookings',ref:'SO-100'}))[0];assert.equal(imported.status,'hold');assert.equal(imported.source_status,'Confirmed');assert.equal(imported.source_row['Private note'],'Original note, retained');
+ const raw=fs.readFileSync(file,'utf8');const changedFile=path.join(tmp,'changed.csv');fs.writeFileSync(changedFile,raw.replace('2500.00','2501.00'));
+ await assert.rejects(()=>call('import',{...opts,file:changedFile},['systemone']),/Changed source/);
+ const bad=path.join(tmp,'bad.csv');fs.writeFileSync(bad,raw.replace('SO-100','SO-101')+'SO-102,Bad,Missing artist,Northern Stages,Harbour Hall,2027-02-12T19:00:00+13:00,2027-02-12T21:00:00+13:00,NZD,10,Hold,bad\n');
+ await assert.rejects(()=>call('import',{...opts,file:bad},['systemone']),/No match/);await reject('show',{kind:'bookings',ref:'SO-101'},/No match/);
+ const {default:ExcelJS}=await import('exceljs');const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('Shows');const parsed=parseCsv(raw);ws.addRow(Object.keys(parsed[0]));ws.addRow(Object.values(parsed[0]).map(v=>v==='SO-100'?'SO-200':v));const xlsx=path.join(tmp,'shows.xlsx');await wb.xlsx.writeFile(xlsx);
+ assert.equal((await call('import',{...opts,file:xlsx,sheet:'Shows'},['systemone']))[0].added,1);
+ ws.getCell('A2').value={formula:'1+1',result:2};await wb.xlsx.writeFile(xlsx);await assert.rejects(()=>call('import',{...opts,file:xlsx},['systemone']),/Formula/);
+ const backup=path.join(tmp,'export');await call('export',{dir:backup});const exported=JSON.parse(fs.readFileSync(path.join(backup,'backup.json')));assert.equal(exported.records.bookings.length,6);assert.ok(exported.records.activity.length>10);
+ for(const t of [...Object.keys(entities),'receipts','activity'])assert.equal(parseCsv(fs.readFileSync(path.join(backup,t+'.csv'),'utf8')).length,exported.records[t].length);
+ assert.ok(table([{text:'<script>alert(1)</script>'}]).includes('&lt;script&gt;'));assert.throws(()=>parseCsv('a,a\n1,2'),/unique/);assert.throws(()=>parseCsv('a,b\n"unterminated'),/unclosed/);
+ assert.equal(page({title:'<unsafe>',sections:[]}).includes('<title><unsafe>'),false);
+ for(const c of commands)assert.ok(tested.has(c),'Untested command '+c);
+ // HTML generators open a second connection, so release embedded database first.
+ await db.close();
+ assert.ok(child('scripts/view.mjs').includes('view:'));
+ assert.ok(child('scripts/docs.mjs').includes('document(s) rendered'));
+ assert.ok(fs.readFileSync(path.join(tmp,'views','week.html'),'utf8').includes('Agency week'));
+ const cli=JSON.parse(child('scripts/booking.mjs',['week','--json']));assert.ok(Array.isArray(cli));
+ const ambiguous=spawnSync(process.execPath,['scripts/booking.mjs','show','--kind=artists','--ref=kowhai'],{cwd:REPO_ROOT,env:{...process.env,PGOPTIONS:schema?`-c search_path=${schema}`:''},encoding:'utf8'});assert.equal(ambiguous.status,1);assert.match(ambiguous.stderr,/ART-KOWHAI/);
+ console.log(`PASS: ${commands.length} CLI commands; migrations, idempotent seed, conflict and approval gates, deposit ledger, CSV/XLSX import rollback, exports, drafts and HTML (${db.mode}).`);
+}finally{
+ try{await db.close();}catch{}
+ if(schema){const cleanup=await getDb();try{await cleanup.exec(`drop schema ${schema} cascade`);}finally{await cleanup.close();}}
+ fs.rmSync(tmp,{recursive:true,force:true});
+}
