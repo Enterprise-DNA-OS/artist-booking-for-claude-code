@@ -56,9 +56,11 @@ try{
  await call('update',{kind:'journeys',...ref('TR-NORTH'),arrives_at:new Date(new Date(north.starts_at).getTime()-3600000).toISOString()});
  assert.equal((await call('ready')).find(r=>r.code==='SH-NORTH').ready,true);
  const draft=(await call('draft-itinerary',{ref:'SH-NORTH'}))[0];assert.ok(fs.existsSync(draft.file));
+ await call('update',{kind:'bookings',...ref('SH-NORTH'),venue_id:'VEN-RIVER'});
+ assert.equal((await call('show',{kind:'advance_items',ref:'ADV-NORTH-SAFE'}))[0].completed_on,null);
  await call('update',{kind:'advance_items',...ref('ADV-NORTH-SAFE'),name:'Changed safety scope'});
  assert.equal((await call('ready')).find(r=>r.code==='SH-NORTH').ready,false);
- await reject('complete-show',ref('SH-NORTH'),/not ended/);
+ await reject('complete-show',ref('SH-SYDNEY'),/not ended/);
  // Past confirmed records can be closed without changing their financial history.
  await db.query("update bookings set starts_at=current_timestamp-interval '2 days',ends_at=current_timestamp-interval '1 day' where code='SH-SYDNEY'");
  await call('complete-show',ref('SH-SYDNEY'));

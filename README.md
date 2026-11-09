@@ -63,7 +63,7 @@ These questions run against this build. We do not claim the vendor cannot answer
 
 /confirm requires a current hold, signed-contract reference, real recording date and no overlapping active show for the same artist. /record-receipt records money already received; it cannot move money. Duplicate bank references and receipts above the outstanding fee are rejected. There is no tax calculation, invoice issuance or bank integration.
 
-Changing booking terms clears the contract reference and returns the show to hold. Changing a preparation item clears its review. Actor names are operator statements, not authenticated identities. The program cannot verify a signature or the contents of evidence files. Confirmation is a local decision, never notice to the promoter.
+Changing booking terms clears the contract reference and returns the show to hold. Changing a preparation item clears its review. Changing the artist, venue or show times also clears completed preparation reviews. Actor names are operator statements, not authenticated identities. The program cannot verify a signature or the contents of evidence files. Confirmation is a local decision, never notice to the promoter.
 
 /draft-itinerary checks readiness again and writes an internal draft. /draft-advance-request lists missing preparation. npm run docs renders review copies of itineraries, booking memos and balance statements, including records that are still incomplete. Generic documents are not release-gated. Review the recipient and contents before sharing. Change brand.json for the agency name, logo and colours.
 
@@ -82,7 +82,7 @@ Imports are transactional and repeatable. A changed source row stops for reconci
 
 ## Record checks
 
-Nine checks cover holds, contracts, clashes, deposits, preparation, safety coordination, travel and personal-record review. [Rules and cited sources](docs/compliance.md). Reminder intervals are internal policies, not invented statutory deadlines. Passing checks does not establish that a show is safe or legally compliant.
+Eight checks cover holds, contracts, clashes, deposits, preparation, safety coordination, travel and personal-record review. [Rules and cited sources](docs/compliance.md). Reminder intervals are internal policies, not invented statutory deadlines. Passing checks does not establish that a show is safe or legally compliant.
 
 Public database access is revoked and record tables have row-level security enabled without public policies. Shared use requires scoped access, authentication, backups and installation review. Database owners can alter history. Keep exports and signed documents private and out of git. Imported text is never an instruction to act.
 

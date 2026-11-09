@@ -5,6 +5,7 @@ import {pathToFileURL} from 'node:url';
 import {getDb, REPO_ROOT} from './lib/db.mjs';
 import {parseCsv} from './lib/csv.mjs';
 import {page,table,writeOut} from './lib/render.mjs';
+import {table as textTable} from './lib/format.mjs';
 export const entities=JSON.parse(fs.readFileSync(path.join(REPO_ROOT,'entities.json'),'utf8'));
 export const reads={
  'week': "select code,artist,local_start,timezone,venue,status,owner from booking_desk where status in ('hold','confirmed') and ends_at>=current_timestamp and starts_at<current_timestamp+interval '14 days' order by starts_at,code",
@@ -61,7 +62,12 @@ export async function run(db,cmd,o={},pos=[]){if(!commands.includes(cmd))throw E
    if(kind==='bookings'&&before&&Object.keys(fields).some(k=>!['notes','owner','hold_until'].includes(k))){if(['completed','cancelled'].includes(before.status))throw Error('Closed shows cannot have terms changed');fields.status='hold';fields.contract_ref='';fields.contract_on=null;fields.contract_actor='';if((fields.fee_cents??before.fee_cents)<Number((await db.query('select coalesce(sum(amount_cents),0) n from receipts where booking_id=$1',[before.id]))[0].n))throw Error('Fee cannot be below recorded receipts');}
    if(kind==='advance_items'&&before){fields.completed_on=null;fields.evidence_ref='';fields.completed_by='';}
    const after=cmd==='add'?await insert(db,kind,{code:code(required(o,'code')),...fields}):await update(db,kind,before.id,fields);
-   await audit(db,kind,after.id,actor,cmd,before,after);return[after];
+   await audit(db,kind,after.id,actor,cmd,before,after);
+   if(kind==='bookings'&&before&&['artist_id','venue_id','starts_at','ends_at'].some(k=>Object.hasOwn(fields,k)&&String(fields[k])!==String(before[k]))){
+    const reviewed=await db.query('select * from advance_items where booking_id=$1 and completed_on is not null',[before.id]);
+    for(const item of reviewed){const reset=await update(db,'advance_items',item.id,{completed_on:null,evidence_ref:'',completed_by:''});await audit(db,'advance_items',item.id,actor,'booking-change',item,reset,'Artist, venue or times changed. Review preparation again.');}
+   }
+   return[after];
   }
   const isAdvance=cmd==='complete-advance';const kind=isAdvance?'advance_items':'bookings';const before=await resolve(db,kind,required(o,'ref'));let after;
   if(isAdvance){const booking=await resolve(db,'bookings',before.booking_id);if(!['hold','confirmed'].includes(booking.status))throw Error('Cannot complete preparation for a closed show');after=await update(db,kind,before.id,{completed_on:pastDate(required(o,'on')),completed_by:actor,evidence_ref:required(o,'evidence')});}
@@ -101,6 +107,10 @@ async function draft(db,cmd,o){await db.exec('BEGIN READ ONLY');try{const b=awai
  if(cmd==='draft-itinerary'){const ready=(await db.query(reads.ready)).find(r=>r.code===b.code);if(!ready?.ready)throw Error('Itinerary blocked: review ready, attention and preparation records');sections=[{title:'Show',html:table(show)},{title:'Travel, UTC timestamps',html:table(await db.query('select name,departs_at,arrives_at,origin,destination,reference from journeys where booking_id=$1 order by departs_at',[b.id]))}];}
  else sections=[{title:'Show',html:table(show)},{title:'Please review these outstanding details',html:table(await db.query('select name,category,due_on,owner from advance_items where booking_id=$1 and completed_on is null order by due_on',[b.id]))}];
  const file=writeOut('drafts',`${cmd}-${b.code}-${Date.now()}`,page({title:cmd==='draft-itinerary'?'Artist itinerary draft':'Show preparation request draft',subtitle:'Internal draft. Review the recipient and contents before sharing.',sections}));return[{file}];}finally{await db.exec('ROLLBACK');}}
-export function format(rows){if(!rows.length)return 'No records.';const cols=[...new Set(rows.flatMap(Object.keys))];const str=v=>v instanceof Date?v.toISOString():v===null||v===undefined?'':typeof v==='object'?JSON.stringify(v):String(v);return [cols.join(' | '),cols.map(c=>'-'.repeat(Math.min(c.length,25))).join(' | '),...rows.map(r=>cols.map(c=>str(r[c])).join(' | '))].join('\n');}
+export function format(rows){
+ if(!rows.length)return 'No records.';
+ const cols=[...new Set(rows.flatMap(Object.keys))];
+ return textTable(rows,cols.map(key=>({key,label:key.replace(/_cents$/,'').replaceAll('_',' '),width:80,format:value=>value===null||value===undefined?'':key.endsWith('_cents')?(Number(value)/100).toFixed(2):value instanceof Date?value.toISOString():typeof value==='object'?JSON.stringify(value):String(value).replace(/\s+/g,' ')})));
+}
 function parse(args){const o={},pos=[];for(let i=0;i<args.length;i++){const a=args[i];if(!a.startsWith('--')){pos.push(a);continue;}const [raw,...rest]=a.slice(2).split('=');const key=raw.replaceAll('-','_');if(Object.hasOwn(o,key))throw Error('Duplicate flag '+raw);if(['json','dry_run'].includes(key)){if(rest.length)throw Error('Boolean flag takes no value');o[key]=true;}else{o[key]=rest.length?rest.join('='):args[++i];if(o[key]===undefined||String(o[key]).startsWith('--'))throw Error('Missing flag value '+raw);}}return{o,pos};}
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href){let db;try{const {o,pos}=parse(process.argv.slice(2));const cmd=pos.shift()||'help';if(pos.length>(cmd==='import'?1:0))throw Error('Unexpected positional argument');db=await getDb();const rows=await run(db,cmd,o,pos);console.log(o.json?JSON.stringify(rows,null,2):format(rows));}catch(e){if(process.argv.includes('--json'))console.error(JSON.stringify({error:e.message}));else console.error(e.message);process.exitCode=1;}finally{if(db)await db.close();}}
